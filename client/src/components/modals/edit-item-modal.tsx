@@ -396,17 +396,22 @@ export function EditItemModal({
 
       // Initialize multiple assignees for Epic/Feature types
       if ((displayWorkItem.type === 'EPIC' || displayWorkItem.type === 'FEATURE') && displayWorkItem.assignees) {
-        const assigneesList = displayWorkItem.assignees.map((assignee: any) => ({
-          userId: assignee.userId || assignee.id,
-          role: assignee.role || 'ASSIGNEE'
-        }));
+        const assigneesList = displayWorkItem.assignees.map((assignee: any) => {
+          // Find the user object from project team members
+          const user = assignee.user || projectTeamMembers.find(member => member.id === (assignee.userId || assignee.id));
+          return {
+            userId: assignee.userId || assignee.id,
+            user: user,
+            role: assignee.role || 'ASSIGNEE'
+          };
+        }).filter(assignee => assignee.user); // Only include assignees where we found the user object
         console.log("📋 Initializing multiple assignees:", assigneesList);
         setMultipleAssignees(assigneesList);
       } else {
         setMultipleAssignees([]);
       }
     }
-  }, [displayWorkItem, isOpen, form]);
+  }, [displayWorkItem, isOpen, form, projectTeamMembers]); // Added projectTeamMembers dependency
 
   // Reset state when modal closes
   useEffect(() => {
@@ -1046,17 +1051,21 @@ export function EditItemModal({
 
               {/* Conditional assignee field - single for non-Epic/Feature, multiple for Epic/Feature */}
               {(workItem?.type === 'EPIC' || workItem?.type === 'FEATURE') ? (
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                <div className="space-y-4 py-3 bg-gradient-to-r from-slate-50 to-blue-50 rounded-lg border border-blue-200 p-4">
+                  <div className="flex items-center space-x-2 text-base font-semibold text-slate-700">
                     <Users className="h-4 w-4" />
-                    <span>Multiple Assignees</span>
+                    <span>Team Assignment (Professional Agile)</span>
                   </div>
-                  <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                  <div className="relative z-20 min-h-[80px]">
                     <MultiAssigneeSelect
-                      assignees={multipleAssignees}
+                      value={multipleAssignees}
                       onChange={setMultipleAssignees}
-                      users={projectTeamMembers || []}
+                      availableUsers={projectTeamMembers || []}
+                      placeholder="Assign team members to this Epic/Feature..."
+                      currentUserId={currentUser?.id}
                       maxAssignees={5}
+                      disabled={!isAdminOrScrum}
+                      className="bg-white"
                     />
                   </div>
                 </div>

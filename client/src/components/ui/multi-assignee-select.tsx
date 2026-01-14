@@ -75,16 +75,16 @@ export function MultiAssigneeSelect({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState<'OWNER' | 'ASSIGNEE' | 'COLLABORATOR'>('ASSIGNEE');
 
-  const assignedUserIds = value.map(a => a.userId);
-  const filteredUsers = availableUsers.filter(user => 
+  const assignedUserIds = Array.isArray(value) ? value.map(a => a.userId) : [];
+  const filteredUsers = Array.isArray(availableUsers) ? availableUsers.filter(user => 
     !assignedUserIds.includes(user.id) &&
     (user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
      user.username.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  ) : [];
 
   const handleAddAssignee = (user: User) => {
-    if (value.length >= maxAssignees) return;
+    if (!Array.isArray(value) || value.length >= maxAssignees) return;
     
     const newAssignee: AssigneeWithRole = {
       userId: user.id,
@@ -98,31 +98,31 @@ export function MultiAssigneeSelect({
   };
 
   const handleRemoveAssignee = (userId: number) => {
-    onChange(value.filter(a => a.userId !== userId));
+    onChange(Array.isArray(value) ? value.filter(a => a.userId !== userId) : []);
   };
 
   const handleRoleChange = (userId: number, newRole: 'OWNER' | 'ASSIGNEE' | 'COLLABORATOR') => {
     onChange(
-      value.map(assignee => 
+      Array.isArray(value) ? value.map(assignee => 
         assignee.userId === userId 
           ? { ...assignee, role: newRole }
           : assignee
-      )
+      ) : []
     );
   };
 
-  const ownerCount = value.filter(a => a.role === 'OWNER').length;
+  const ownerCount = Array.isArray(value) ? value.filter(a => a.role === 'OWNER').length : 0;
 
   return (
     <div className={cn("space-y-4 relative", className)}>
       {/* Current Assignees */}
-      {value.length > 0 && (
+      {Array.isArray(value) && value.length > 0 && (
         <div className="space-y-3">
           <label className="text-sm font-medium text-gray-700">
-            Assigned Team Members ({value.length}/{maxAssignees})
+            Assigned Team Members ({Array.isArray(value) ? value.length : 0}/{maxAssignees})
           </label>
           <div className="space-y-3 relative z-10">
-            {value.map((assignee, index) => {
+            {Array.isArray(value) && value.map((assignee, index) => {
               const roleConfig = ROLE_CONFIG[assignee.role];
               const RoleIcon = roleConfig.icon;
               
@@ -224,7 +224,7 @@ export function MultiAssigneeSelect({
       )}
 
       {/* Add Assignee Button */}
-      {!disabled && value.length < maxAssignees && (
+      {!disabled && Array.isArray(value) && value.length < maxAssignees && (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -299,7 +299,7 @@ export function MultiAssigneeSelect({
                         {searchQuery ? "No users found matching your search" : "No available users"}
                       </div>
                     ) : (
-                      filteredUsers.map((user) => (
+                      Array.isArray(filteredUsers) && filteredUsers.map((user) => (
                         <div
                           key={user.id}
                           className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 cursor-pointer border transition-colors"
@@ -308,7 +308,7 @@ export function MultiAssigneeSelect({
                           <Avatar className="h-8 w-8">
                             <AvatarImage src={user.avatarUrl || undefined} />
                             <AvatarFallback className="text-xs bg-gray-100">
-                              {user.fullName.split(' ').map(n => n[0]).join('')}
+                              {user.fullName?.split(' ').map(n => n[0]).join('') || '??'}
                             </AvatarFallback>
                           </Avatar>
                           
@@ -332,7 +332,7 @@ export function MultiAssigneeSelect({
       )}
 
       {/* Helpful Info */}
-      {value.length === 0 && !disabled && (
+      {Array.isArray(value) && value.length === 0 && !disabled && (
         <div className="text-xs text-gray-500 bg-blue-50 p-3 rounded-md">
           <div className="font-medium mb-1">💡 Professional Agile Assignment</div>
           <div>

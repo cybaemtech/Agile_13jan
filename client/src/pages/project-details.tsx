@@ -1100,6 +1100,11 @@ export default function ProjectDetails() {
 
   // Helper function to check if an item matches the current filters
   const itemMatchesFilters = (item: WorkItem): boolean => {
+    // Safety check for undefined/null item
+    if (!item || typeof item !== 'object') {
+      return false;
+    }
+
     // Role-based assignee filter: Admin/Scrum Master can see all items, regular users only their assigned items
     if (currentUser?.role !== 'ADMIN' && currentUser?.role !== 'SCRUM_MASTER') {
       if (!currentUser || item.assigneeId !== currentUser.id) {
@@ -1120,9 +1125,9 @@ export default function ProjectDetails() {
     // Search filter (title and hierarchy)
     if (searchTerm && searchTerm.trim() !== '') {
       const searchLower = searchTerm.toLowerCase().trim();
-      const titleMatch = item.title.toLowerCase().includes(searchLower);
-      const descriptionMatch = item.description?.toLowerCase().includes(searchLower);
-      const externalIdMatch = item.externalId?.toLowerCase().includes(searchLower);
+      const titleMatch = item.title?.toLowerCase().includes(searchLower) || false;
+      const descriptionMatch = item.description?.toLowerCase().includes(searchLower) || false;
+      const externalIdMatch = item.externalId?.toLowerCase().includes(searchLower) || false;
       
       if (!titleMatch && !descriptionMatch && !externalIdMatch) {
         return false;
@@ -1134,21 +1139,35 @@ export default function ProjectDetails() {
 
   // Helper function to check if item should be shown (itself or has visible children)
   const shouldShowItem = (item: WorkItem, allItems: WorkItem[]): boolean => {
+    // Safety check for undefined/null parameters
+    if (!item || !Array.isArray(allItems)) {
+      return false;
+    }
+
     // If item itself matches filters, show it
     if (itemMatchesFilters(item)) {
       return true;
     }
 
     // If item is a parent and has children that match filters, show it
-    const children = allItems.filter(child => child.parentId === item.id);
+    const children = allItems.filter(child => child && child.parentId === item.id);
     return children.some(child => shouldShowItem(child, allItems));
   };
 
   const organizeWorkItemsHierarchically = () => {
-    if (!Array.isArray(workItems)) return [];
+    // Enhanced safety checks
+    if (!Array.isArray(workItems) || workItems.length === 0) {
+      return [];
+    }
+
+    // Ensure all items in the array are valid
+    const validWorkItems = workItems.filter(item => item && typeof item === 'object' && item.id);
+    if (validWorkItems.length === 0) {
+      return [];
+    }
 
     // Apply filters first - only include items that match filters or have children that match
-    const filteredItems = workItems.filter(item => shouldShowItem(item, workItems));
+    const filteredItems = validWorkItems.filter(item => shouldShowItem(item, validWorkItems));
 
     // Extract all filtered items by type
     const epics = filteredItems.filter(item => item.type === 'EPIC');
@@ -2424,7 +2443,19 @@ export default function ProjectDetails() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-100">
-                      {organizeWorkItemsHierarchically().map((item: any) => {
+                      {(() => {
+                        const organizedItems = organizeWorkItemsHierarchically();
+                        if (!Array.isArray(organizedItems) || organizedItems.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                                No work items to display
+                              </td>
+                            </tr>
+                          );
+                        }
+                        
+                        return organizedItems.map((item: any) => {
                         const indentationStyles = {
                           0: "pl-2", // Epic
                           1: "pl-8", // Feature 
@@ -2976,7 +3007,8 @@ export default function ProjectDetails() {
                             </td>
                           </tr>
                         );
-                      })}
+                        });
+                      })()}
                       {(!Array.isArray(workItems) || workItems.length === 0) && (
                         <tr>
                           <td colSpan={4} className="px-4 py-8 text-center text-gray-500 text-sm">
@@ -3270,7 +3302,7 @@ export default function ProjectDetails() {
                                   className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
                                   onClick={() => openModal("archiveProject", { project })}
                                 >
-                                  Archive Project
+                                 4
                                 </Button>
                               </div>
                             );
@@ -3297,7 +3329,7 @@ export default function ProjectDetails() {
               </div>
             )}
           </div>
-        </main>
+        </main>************
       </div>
 
       {/* Modals */}
@@ -3391,8 +3423,7 @@ export default function ProjectDetails() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 Must be 2-10 uppercase letters and numbers only
-              </p>
-            </div>
+              </p>           </div>
           </div>
 
           <DialogFooter className="gap-2">
